@@ -28,12 +28,12 @@ def get_height_profile_linear(dem_path, p_a, p_b, step_meters=1.0, max_map_size=
 
     # 2. Extract a tightly bounded chunk around the line segment to save RAM
     # Map coordinates to raw row/col indices (ignoring orientation for bounding box)
-    c_min = max(0, int(min(p_a[0], p_b[0]) // cellsize))
-    c_max = min(ncols, int(np.ceil(max(p_a[0], p_b[0]) / cellsize)) + 1)
+    c_min = max(0, int(min(p_a[0], p_b[0]) // cellsize) - 1)
+    c_max = min(ncols, int(np.ceil(max(p_a[0], p_b[0]) / cellsize)) + 2)
     
     # Remember: Arma Y=0 is matrix row bottom, so we map inversely 
-    r_start = max(0, int((max_map_size - max(p_a[1], p_b[1])) // cellsize))
-    r_end = min(nrows, int(np.ceil((max_map_size - min(p_a[1], p_b[1])) / cellsize)) + 1)
+    r_start = max(0, int((max_map_size - max(p_a[1], p_b[1])) // cellsize) - 1)
+    r_end = min(nrows, int(np.ceil((max_map_size - min(p_a[1], p_b[1])) / cellsize)) + 2)
     
     skiprows = 6 + r_start
     max_rows = max(1, r_end - r_start)
@@ -72,11 +72,19 @@ def get_height_profile_linear(dem_path, p_a, p_b, step_meters=1.0, max_map_size=
     # 5. Build 2D Interpolator using scipy for smooth lookup
     from scipy.interpolate import RegularGridInterpolator
     
+    # Sort crop_y so it is strictly ascending for the interpolator
+    ascending_y = crop_y[::-1]
+
+    # Correct matrix alignment:
+    # We need the matrix rows to match ascending_y. 
+    # Since dem_crop originally has rows going DOWN, we flip the rows vertically.
+    corrected_matrix = np.flipud(dem_crop).T
+
     # RegularGridInterpolator expects strictly ascending coordinates.
     # Because crop_y goes from top (high value) to bottom (low value), we invert it.
     interp = RegularGridInterpolator(
-        (crop_x, crop_y[::-1]), 
-        np.fliplr(dem_crop).T,   # flip matrix array to match reversed Y coordinate axis
+        (crop_x, ascending_y), 
+        corrected_matrix, 
         bounds_error=False, 
         fill_value=np.nan,
         method='linear'          # Bilinear interpolation fills smooth values between cell edges
