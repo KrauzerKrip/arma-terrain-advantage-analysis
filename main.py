@@ -463,6 +463,62 @@ def print_win_percentages(df):
     print(f"OPFOR  (Defender) Wins : {opfor_wins} ({opfor_pct:.1f}%)")
 
 
+def check_spawn_balance(df, output_path):
+    """Analyzes the distribution of initial macro height deltas across unique matches."""
+    print("\n--- Map Generation: Initial Spawn Balance ---")
+    
+    # 1. Compress to one row per unique match
+    match_df = df.groupby('test_id').agg({
+        'macro_height_delta': 'first'
+    }).reset_index()
+    
+    total_matches = len(match_df)
+    
+    # 2. Calculate the split
+    # Reminder from your lmplot: Positive = BLUFOR high ground, Negative = OPFOR high ground
+    blufor_high_ground = len(match_df[match_df['macro_height_delta'] > 0])
+    opfor_high_ground = len(match_df[match_df['macro_height_delta'] < 0])
+    even_ground = len(match_df[match_df['macro_height_delta'] == 0])
+    
+    print(f"Total Unique Matches: {total_matches}")
+    print(f"BLUFOR Spawns with High Ground: {blufor_high_ground} ({(blufor_high_ground/total_matches)*100:.1f}%)")
+    print(f"OPFOR Spawns with High Ground:  {opfor_high_ground} ({(opfor_high_ground/total_matches)*100:.1f}%)")
+    print(f"Perfectly Even Elevation:       {even_ground} ({(even_ground/total_matches)*100:.1f}%)")
+    
+    print(f"\nMean Advantage: {match_df['macro_height_delta'].mean():.2f} meters")
+    print(f"Median Advantage: {match_df['macro_height_delta'].median():.2f} meters")
+    
+    # 3. Plot the distribution
+    plt.figure(figsize=(10, 6), dpi=100)
+    
+    # Using a diverging color palette conceptually (blue for positive, red for negative isn't easily done in standard hist, so we use a neutral color)
+    ax = match_df['macro_height_delta'].plot.hist(
+        bins=20, 
+        color='#9467bd', 
+        edgecolor='black', 
+        alpha=0.7
+    )
+    
+    # Highlight the absolute zero line
+    plt.axvline(0, color='red', linestyle='--', linewidth=3, label='Even Ground (0m Delta)')
+    
+    plt.title('Distribution of Initial Spawn Elevation (Macro Terrain)', fontsize=14, fontweight='bold', pad=15)
+    plt.xlabel('BLUFOR Height Advantage (meters, Negative = OPFOR High Ground)', fontsize=11)
+    plt.ylabel('Number of Matches', fontsize=11)
+    
+    # Add an annotation to make it foolproof
+    plt.text(0.05, 0.95, '$\leftarrow$ OPFOR Started Higher', transform=ax.transAxes, fontsize=12, verticalalignment='top')
+    plt.text(0.95, 0.95, 'BLUFOR Started Higher $\\rightarrow$', transform=ax.transAxes, fontsize=12, verticalalignment='top', horizontalalignment='right')
+    
+    plt.legend()
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+    print(f"Spawn balance histogram saved to: {output_path}")
+
+
 def main():
     # Core Data Assembly Line (Required)
     df = process_sandbox_data(".data/terrain_advantage_data")
@@ -481,6 +537,7 @@ def main():
     draw_jointplot(df, ".data/jointplot.png")
     logi_regression(df, ".data/lmplot.png")
     make_classification(df, ".data/classification.png")
+    check_spawn_balance(df, ".data/macro_balance_histogram.png")
     print_win_percentages(df)
 
 

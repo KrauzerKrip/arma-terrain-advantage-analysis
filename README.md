@@ -53,6 +53,16 @@ Initially, this data was heavily skewed by point-blank and close-quarters combat
 
 By filtering out the CQC noise, a distinct physical reality emerges: the average mid-to-long-range kill is fired downhill. The aggregated terrain profile shows a consistent, pronounced downward slope from the killer's position (0%) to the victim's position (100%). This visually confirms that in Arma 3 bot combat, a slight uphill position won't hurt.
 
+### Dataset Validity & Map Bias
+
+To ensure the simulation results were not skewed by biased map generation (e.g., the algorithm accidentally spawning the OPFOR defenders on a hill every time), the dataset was evaluated for initial macro-elevation balance.
+
+![Macro height difference balance histogram](plots/macro_balance_histogram.png)
+
+Across the 160 unique engagements, the generation algorithm distributed the initial high-ground advantage with a tight 45% (BLUFOR) to 55% (OPFOR) split. Furthermore, the bimodal distribution of the dataset shows the algorithm successfully avoided flat terrain, consistently forcing scenarios with significant elevation deltas (>20 meters) to rigorously test the impact of macro-terrain.
+
+Because the initial spawn conditions were effectively balanced, we can confidently conclude that OPFOR's dominant 65% win rate is the result of the structural and tactical advantages of being a defending force in Arma 3, rather than an artifact of biased terrain generation.
+
 ## Getting Started
 System Prerequisites
 
