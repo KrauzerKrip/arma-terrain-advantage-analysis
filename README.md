@@ -25,8 +25,8 @@ Skills of units were set in the following way:
 
 Across the 160 simulated matches, there is a pronounced disparity in win rates, indicating a significant structural advantage for the defending force.
 
-|Force|Role|Wins|Win|Percentage|
-|-----|----|----|---|----------|
+|Force|Role|Wins|Win Percentage|
+|-----|----|----|-------------|
 |**BLUFOR**|Attacker|56|35.0%|
 |**OPFOR**|Defender|104|65.0%|
 
