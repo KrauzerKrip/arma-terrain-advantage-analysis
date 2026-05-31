@@ -177,7 +177,7 @@ def process_sandbox_data(data_dir):
 # 3. METRICS AGGREGATION
 # ==========================================
 
-def compute_average_terrain_profile(all_line_series, num_bins=100, relative=False):
+def compute_average_terrain_profile(all_line_series, min_dist, num_bins=100,  relative=False):
     """
     Computes the absolute or relative average terrain height profile across multiple lines.
     
@@ -195,7 +195,14 @@ def compute_average_terrain_profile(all_line_series, num_bins=100, relative=Fals
             continue
             
         distances = np.array([node['distance_from_a'] for node in clean_nodes])
+        total_dist = distances[-1]
+        
         max_dist = distances[-1]
+
+        # 1. Reject engagements outside our physical similarity bounds
+        if total_dist < min_dist or total_dist > max_dist:
+            continue
+
         if max_dist == 0:
             continue
             
@@ -384,12 +391,13 @@ def run_baseline_metrics_pipeline(df):
         lambda row: np.linalg.norm(row['killer_position'] - row['killed_position']), axis=1
     )
     print("\n--- Baseline Metrics ---")
-    print(f"Mean Engagement Distance: {df['distance'].mean():.2f} meters")
+    print(f"Mean kill distance: {df['distance'].mean():.2f} meters")
     print(f"Standard Deviation: {df['distance'].std():.2f} meters")
+    print(f"Median kill distance: {df['distance'].std():.2f} meters")
     print(df.info())
 
 
-def run_terrain_profile_pipeline(df, dem_path, output_path, limit=30):
+def run_terrain_profile_pipeline(df, min_distance_avg, dem_path, output_path, limit=30):
     """Extracts, plots, and aggregates sequential spatial lines from points A to B."""
     print("\n--- Running Terrain Profile Aggregation Pipeline ---")
     first_positions = df[['killer_position', 'killed_position']].iloc[:limit]
@@ -404,7 +412,7 @@ def run_terrain_profile_pipeline(df, dem_path, output_path, limit=30):
         # plot_height_profile(profile, f".data/plots/profile_{i}.png")
     
     # Process relative mathematical adjustments and save the structural envelope
-    average_terrain_profile = compute_average_terrain_profile(profiles, relative=True)
+    average_terrain_profile = compute_average_terrain_profile(profiles, min_distance_avg, relative=True)
     plot_aggregated_terrain(average_terrain_profile, output_path)
     print(f"Aggregated terrain profile saved to: {output_path}")
 
@@ -468,7 +476,7 @@ def main():
     # Comment or uncomment any single line below to toggle features off/on
     # -----------------------------------------------------------------
     run_baseline_metrics_pipeline(df)
-    run_terrain_profile_pipeline(df, dem_path=".data/altis/dem.asc", output_path=".data/average_terrain_profile.png", limit=30)
+    run_terrain_profile_pipeline(df, 100, dem_path=".data/altis/dem.asc", output_path=".data/average_terrain_profile.png", limit=30)
     run_histogram_pipeline(df, ".data/delta_z_histogram.png")
     draw_jointplot(df, ".data/jointplot.png")
     logi_regression(df, ".data/lmplot.png")
